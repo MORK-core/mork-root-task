@@ -18,7 +18,6 @@ SECTIONS
     . = ALIGN(4K);
     .data : {
         *(.data.heap)
-        *(.data.executor)
         *(.data .data.*)
         *(.sdata .sdata.*)
     }
