@@ -14,12 +14,15 @@ set(LINKER_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/linker-qemu-user.ld")
 set(RUSTFLAGS "-C link-arg=-T${LINKER_SCRIPT} -C relocation-model=static")
 
 set(ROOT_TASK_FILE ${ROOT_TASK_TARGET_DIR}/${TARGET}/${CARGO_BUILD_TYPE}/mork-root-task)
-
+set(TESTS_DIR ${CMAKE_BINARY_DIR}/tests)
+set(GEN_PATH "${CMAKE_CURRENT_SOURCE_DIR}/src/auto_gen.rs")
 add_custom_target(root-task-build ALL
     COMMAND ${CMAKE_COMMAND} -E
-    env "RUSTFLAGS=${RUSTFLAGS}" "CARGO_TARGET_DIR=${ROOT_TASK_TARGET_DIR}"
+        env "RUSTFLAGS=${RUSTFLAGS}" "CARGO_TARGET_DIR=${ROOT_TASK_TARGET_DIR}"
+        "TESTS_DIR=${TESTS_DIR}" "GEN_PATH=${GEN_PATH}"
     ${CARGO_COMMAND} build ${CARGO_ARGS}
     WORKING_DIRECTORY ${ROOT_TASK_DIR}
+    DEPENDS mork_tests
     COMMENT "Building root task, ${ROOT_TASK_FILE}"
 )
 
