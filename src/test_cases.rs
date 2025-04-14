@@ -12,7 +12,9 @@ use mork_common::mork_user_log;
 use mork_common::syscall::message_info::ResponseLabel;
 use mork_common::types::{ResultWithErr, VMRights};
 use mork_common::utils::alignas::{align_down, align_up};
-use mork_user_lib::mork_task::{mork_alloc_object, mork_delete_object, mork_thread_resume, mork_thread_set_space, mork_thread_suspend, mork_thread_write_registers};
+use mork_user_lib::mork_cspace::{mork_alloc_object, mork_cspace_copy, mork_delete_object};
+use mork_user_lib::mork_ipc::{mork_notification_signal, mork_notification_wait};
+use mork_user_lib::mork_task::{mork_thread_resume, mork_thread_set_space, mork_thread_write_registers};
 use mork_user_lib::mork_mm::{mork_map_frame_anyway, mork_unmap_frame};
 use crate::auto_gen::TEST_META_INFOS;
 
@@ -58,18 +60,32 @@ pub fn parse() -> ResultWithErr<ResponseLabel> {
 }
 
 pub fn run() -> ResultWithErr<ResponseLabel> {
-    // map frames to root task vspace
+    let notification = mork_alloc_object(
+        CNodeSlot::CapInitThread as usize, ObjectType::Notification
+    )?;
+
+    mork_notification_signal(notification)?;
+    let badge = mork_notification_wait(notification)?;
+    assert_eq!(badge, 1);
+
     for case in &TEST_INFO.cases {
         mork_user_log!(info, "start run test case: {}...", case.case_name);
-        run_signal_test(&case.case_elf)?
+        run_signal_test(&case.case_elf, notification)?
     }
     Ok(())
 }
 
-fn run_signal_test(test: &ElfBytes<AnyEndian>) -> ResultWithErr<ResponseLabel> {
+fn run_signal_test(test: &ElfBytes<AnyEndian>, notification: usize) -> ResultWithErr<ResponseLabel> {
     let segments = test.segments().unwrap();
     let mut alloc_object = Vec::new();
     let task = mork_alloc_object(CNodeSlot::CapInitThread as usize, ObjectType::Thread)?;
+    let com_cap = mork_cspace_copy(
+        CNodeSlot::CapInitThread as usize,
+        notification,
+        task,
+        CNodeSlot::CapParentCom as usize
+    )?;
+    assert_eq!(com_cap, CNodeSlot::CapParentCom as usize);
     let vspace = mork_alloc_object(CNodeSlot::CapInitThread as usize, ObjectType::PageTable)?;
     for segment in segments {
         let mut alloc_frame = alloc_frame_and_copy_data(segment, test)?;
@@ -84,8 +100,8 @@ fn run_signal_test(test: &ElfBytes<AnyEndian>) -> ResultWithErr<ResponseLabel> {
 
     mork_thread_set_space(task, vspace)?;
     mork_thread_resume(task)?;
-    mork_thread_suspend(CNodeSlot::CapInitThread as usize).unwrap();
 
+    mork_notification_wait(notification)?;
 
     for object in alloc_object {
         mork_delete_object(CNodeSlot::CapInitThread as usize, object)?;

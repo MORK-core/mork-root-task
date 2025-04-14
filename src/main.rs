@@ -33,4 +33,6 @@ pub fn main() {
         mork_user_log!(error, "fail to run test cases: {:?}", resp);
         return;
     }
+    mork_user_log!(info, "****************");
+    mork_user_log!(info, "all tests passed!");
 }
