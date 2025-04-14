@@ -11,6 +11,12 @@ SECTIONS
         *(.text .text.*)
     }
     . = ALIGN(4K);
+    .tests_data : {
+        tests_data_start = .;
+        KEEP(*(.tests_data))
+        tests_data_end = .;
+    }
+    . = ALIGN(4K);
     .rodata : {
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)

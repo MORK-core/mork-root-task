@@ -13,7 +13,7 @@ fn main() {
         .expect("TESTS_DIR environment variable not set");
     let path_dir = Path::new(&tests_dir);
     let mut content = String::from("");
-    // let meta_info = Vec::new();
+    let mut meta_infos = Vec::new();
     for entry in path_dir.read_dir().unwrap() {
         if let Ok(entry) = entry {
             let path = entry.path();
@@ -27,13 +27,34 @@ fn main() {
                  static {}: [u8; {}] = *include_bytes!(\"{}\");\n\n",
                 file_name.to_ascii_uppercase(), data.len(), path.to_str().unwrap())
             );
+            let meta_info = MetaInfo {
+                test_name: String::from(file_name),
+                file_size: data.len(),
+            };
+            meta_infos.push(meta_info);
         }
     }
 
+    let meta_info_array = meta_infos
+        .iter()
+        .map(|info| format!(
+            "MetaInfo {{ test_name: \"{}\", file_size: {} }}",
+            info.test_name, info.file_size
+        ))
+        .collect::<Vec<_>>()
+        .join(",\n    ");
+
+    content.push_str(&format!(
+        "\n#[derive(Debug)]\n\
+         pub struct MetaInfo {{\n\
+             pub test_name: &'static str,\n\
+             pub file_size: usize,\n\
+         }}\n\n\
+         pub static TEST_META_INFOS: &[MetaInfo] = &[\n    {}\n];",
+        meta_info_array
+    ));
 
     let dest_path = PathBuf::from(env::var("GEN_PATH").unwrap());
-    println!("dest_path: {:?}", dest_path);
-    // 生成 Rust 代码
     fs::write(
         &dest_path,
         content
