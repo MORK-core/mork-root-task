@@ -7,6 +7,7 @@ extern crate alloc;
 use mork_common::constants::CNodeSlot;
 use mork_common::mork_user_log;
 use mork_user_lib::mork_ipc_buffer::ipc_buffer_init;
+use mork_user_lib::mork_shutdown;
 use mork_user_lib::mork_tls::tls_init;
 
 mod auto_gen;
@@ -35,4 +36,5 @@ pub fn main() {
     }
     mork_user_log!(info, "****************");
     mork_user_log!(info, "all tests passed!");
+    mork_shutdown();
 }
