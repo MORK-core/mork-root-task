@@ -14,7 +14,7 @@ use mork_common::types::{ResultWithErr, VMRights};
 use mork_common::utils::alignas::{align_down, align_up};
 use mork_user_lib::mork_cspace::{mork_alloc_object, mork_cspace_copy, mork_delete_object};
 use mork_user_lib::mork_ipc::{mork_notification_signal, mork_notification_wait};
-use mork_user_lib::mork_task::{mork_thread_resume, mork_thread_set_space, mork_thread_write_registers};
+use mork_user_lib::mork_task::{mork_task_resume, mork_task_set_space, mork_task_write_registers};
 use mork_user_lib::mork_mm::{mork_map_frame_anyway, mork_unmap_frame};
 use crate::auto_gen::TEST_META_INFOS;
 
@@ -96,10 +96,10 @@ fn run_signal_test(test: &ElfBytes<AnyEndian>, notification: usize) -> ResultWit
     let start_entry = test.ehdr.e_entry as usize;
     let mut user_context = UserContext::new();
     user_context.set_next_ip(start_entry);
-    mork_thread_write_registers(task, &user_context)?;
+    mork_task_write_registers(task, &user_context)?;
 
-    mork_thread_set_space(task, vspace)?;
-    mork_thread_resume(task)?;
+    mork_task_set_space(task, vspace)?;
+    mork_task_resume(task)?;
 
     mork_notification_wait(notification)?;
 
